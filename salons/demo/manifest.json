@@ -1,6 +1,6 @@
 {
-  "salonName": "Salon Demo",
-  "defaultCity": "Paris",
+  "salonName": "Le Salon Des Hommes",
+  "defaultCity": "Lyon",
   "modules": {
     "clock": true,
     "weather": true,
@@ -10,22 +10,22 @@
   },
   "logoSrc": "/salons/demo/logo.png",
   "product": {
-    "name": "Masque nourrissant",
-    "desc": "Hydrate en profondeur, idéal après couleur.",
+    "name": "Huile pour barbe",
+    "desc": "Hydrate en profondeur, idéal après rasage.",
     "price": "24,90 €",
-    "img": "/salons/demo/produit.jpg"
+    "img": "/salons/demo/produit.png"
   },
   "ad": {
     "title": "Boulangerie du coin",
     "text": "Formule midi à 8,90 €",
-    "mediaType": "video",
-    "src": "/salons/demo/pub.mp4"
+    "mediaType": "image",
+    "src": "/salons/demo/pub.png"
   },
   "slides": [
     {
-      "img": "/salons/demo/slides/slide1.jpg",
-      "title": "Soin Kératine Pro",
-      "text": "Brillance immédiate, anti-frizz 4 semaines.",
+      "img": "/salons/demo/slides/slide1.png",
+      "title": "Pack huiles pour barbe",
+      "text": "Découvrez notre gamme d'huile pour barbe",
       "footer": "Offre du mois",
       "badge": "-15%"
     },

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Miroir Salon – Hébergement web</title>
+<meta name="color-scheme" content="dark">
+<style>
+:root{ --ui-opacity: 0.82; --radius: 18px; --pad: 16px; --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+*{box-sizing:border-box}
+html,body{ margin:0; padding:0; background:#0b0b0b; color:#eaeaea; font-family:var(--font); height:100%; width:100%; overflow:hidden; }
+.mirror{ position:relative; width:100%; height:100%; cursor:none; }
+.topbar{ position:absolute; top:18px; left:18px; right:18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.logo{ display:flex; align-items:center; gap:10px; user-select:none; }
+.logo img{ height:100px; width:auto; border-radius:10px; box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset; }
+.logo .name{ font-weight:700; font-size:18px; letter-spacing:0.2px; }
+.clock-weather{ display:flex; gap:12px; align-items:center; padding:8px 12px; border-radius:999px; background: rgba(0,0,0,var(--ui-opacity)); backdrop-filter: blur(6px); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+.clock{ font-variant-numeric: tabular-nums; font-weight:700; font-size:20px; }
+.weather{ display:flex; align-items:center; gap:8px; font-size:14px; }
+.weather .icon{ width:26px; height:26px; }
+.bottom-dock{ position:absolute; left:18px; right:18px; bottom:18px; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.card{ background: rgba(0,0,0,var(--ui-opacity)); border-radius: var(--radius); padding: var(--pad); backdrop-filter: blur(6px); box-shadow: 0 18px 58px rgba(0,0,0,0.5); min-height: 110px; }
+.tag{ display:inline-block; padding:4px 8px; border-radius:999px; background:#111; font-size:12px; opacity:0.9; margin-bottom:6px; }
+.product{ display:grid; grid-template-columns: 92px 1fr; gap:14px; align-items:center; }
+.product img{ width:92px; height:92px; border-radius:14px; object-fit:cover; }
+.product .name{ font-weight:700; }
+.product .desc{ opacity:0.88; font-size:14px; margin-top:4px;}
+.product .price{ margin-top:10px; font-weight:900; font-size:24px; }
+.ad{ display:grid; grid-template-columns: 1fr 140px; gap:12px; align-items:center; }
+.ad .mediawrap{ width:140px; height:88px; border-radius:12px; overflow:hidden; background:#000; }
+.ad img, .ad video{ width:100%; height:100%; object-fit:cover; display:block; }
+.slides{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+.slide{ width:min(86vw, 720px); max-height:48vh; border-radius:24px; overflow:hidden; background: rgba(0,0,0,0.70); box-shadow: 0 40px 120px rgba(0,0,0,0.6); display:none; animation: fadein 600ms ease forwards; backdrop-filter: blur(8px); }
+.slide-inner{ display:grid; grid-template-columns: 1fr 42%; gap:0; align-items:stretch; }
+.slide .text{ padding:24px; display:flex; flex-direction:column; justify-content:center; gap:8px; }
+.slide .title{ font-size:30px; font-weight:800; line-height:1.15; }
+.slide .subtitle{ font-size:17px; opacity:0.9; }
+.slide .footer{ margin-top:10px; font-size:14px; opacity:0.78; }
+.slide .imgwrap{ position:relative; min-height:220px; }
+.slide .imgwrap img{ width:100%; height:100%; object-fit:cover; }
+.slide .badge{ position:absolute; top:12px; right:12px; background:#111; padding:6px 10px; border-radius:999px; font-size:12px; opacity:0.9; }
+@keyframes fadein{ from{ opacity:0; transform: translateY(10px) scale(0.98);} to{ opacity:1; transform: translateY(0) scale(1);} }
+@keyframes fadeout{ from{ opacity:1; transform: translateY(0) scale(1);} to{ opacity:0; transform: translateY(6px) scale(0.995);} }
+@media (max-aspect-ratio: 9/14){
+  .bottom-dock{ grid-template-columns: 1fr; }
+  .ad{ grid-template-columns: 1fr; }
+  .product{ grid-template-columns: 84px 1fr; }
+  .ad .mediawrap{ width:100%; height:120px; }
+  .slide{ width:92vw; }
+  .slide-inner{ grid-template-columns: 1fr; }
+  .slide .imgwrap{ height:200px; }
+}
+.status{ position:absolute; top:10px; right:10px; width:10px; height:10px; border-radius:50%; background:#555; opacity:0.7; }
+.status.ok{ background:#22c55e; }
+.status.err{ background:#ef4444; }
+
+/* === OVERRIDES (placement + sizing) === */
+
+/* Ensure both bottom cards align to grid edges */
+#productCard, #adCard { width: 100%; }
+#productCard { justify-self: start; }
+#adCard { justify-self: end; }
+
+/* Slightly stronger baseline on the dock */
+.bottom-dock{
+  align-items: end;
+}
+
+/* Bigger product card (bottom-left) */
+#productCard .product img{ width: 140px; height: 140px; }
+#productCard .product{ grid-template-columns: 140px 1fr; }
+
+/* Bigger ad (bottom-right) */
+#adCard .mediawrap{ width: 200px; height: 140px; }
+.ad{ grid-template-columns: 1fr 200px; }
+
+/* Hard anchor the ad in case layout shifts (prevents drift to the right) */
+#adCard{
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  max-width: min(38vw, 600px);
+  z-index: 10;
+}
+
+/* Safety: prevent accidental overflow that could push layout */
+#adCard, #productCard{ overflow: hidden; }
+
+
+/* === PORTRAIT LAYOUT ADAPTATIONS === */
+
+/* Ensure body uses full height and fits portrait nicely */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Adjust central content for portrait */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  padding: 20px;
+}
+
+/* Ensure mirror area (center) leaves large central zone clear */
+.mirror-area {
+  flex: 1;
+  width: 100%;
+  max-width: 80%;
+  margin: 0 auto;
+}
+
+/* Bottom dock adapted to portrait: stack vertically if too narrow */
+@media screen and (max-aspect-ratio: 3/4) {
+  .bottom-dock {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    position: fixed;
+    bottom: 18px;
+    left: 18px;
+    right: 18px;
+  }
+  #productCard, #adCard {
+    justify-self: center;
+    max-width: 80%;
+  }
+}
+
+/* Center top info for portrait */
+.top-info {
+  width: 100%;
+  text-align: center;
+}
+
+</style>
+</head>
+<body>
+<div class="mirror" id="app">
+  <div class="status" id="status"></div>
+  <div class="topbar">
+    <div class="logo">
+      <img id="logo" alt="Salon Logo">
+      <div class="name" id="salonName"></div>
+    </div>
+    <div class="clock-weather" id="cw" style="display:none;">
+      <div class="clock" id="clock">--:--</div>
+      <div class="weather" id="wWrap" style="display:none;">
+        <img class="icon" id="wIcon" alt="">
+        <div>
+          <div><span class="temp" id="wTemp">--°</span> <span id="wDesc"></span></div>
+          <div class="city" id="wCity">…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-dock">
+    <div class="card" id="productCard" style="display:none;">
+      <div class="tag">Recommandé aujourd'hui</div>
+      <div class="product">
+        <img id="pImg" alt="Produit">
+        <div>
+          <div class="name" id="pName"></div>
+          <div class="desc" id="pDesc"></div>
+          <div class="price" id="pPrice"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="adCard" style="display:none;">
+      <div class="tag">À deux pas d'ici</div>
+      <div class="ad">
+        <div>
+          <div class="card-title" id="adTitle"></div>
+          <div id="adText"></div>
+        </div>
+        <div class="mediawrap" id="adMediaWrap"></div>
+      </div>
+    </div>
+  </div>
+  <div class="slides" id="slides" style="display:none;">
+    <div class="slide" id="slideBox">
+      <div class="slide-inner">
+        <div class="text">
+          <div class="title" id="sTitle"></div>
+          <div class="subtitle" id="sText"></div>
+          <div class="footer" id="sFooter"></div>
+        </div>
+        <div class="imgwrap">
+          <div class="badge" id="sBadge"></div>
+          <img id="sImg" alt="Slide">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const $ = (id)=>document.getElementById(id);
+const statusDot = $('status');
+const POLL_MS = 60000;
+const LS_MANIFEST = 'miroir_remote_manifest';
+const LS_ETAG = 'miroir_remote_etag';
+function getManifestURL(){
+  const p = new URLSearchParams(location.search);
+  if (p.has('manifest')) return p.get('manifest');
+  return '/salons/demo/manifest.json';
+}
+async function fetchManifest(){
+  const url = getManifestURL();
+  const headers = {};
+  const etag = localStorage.getItem(LS_ETAG);
+  if (etag) headers['If-None-Match'] = etag;
+  try{
+    const res = await fetch(url, {headers, cache:'no-cache'});
+    if (res.status === 304){
+      statusDot.className = 'status ok';
+      return JSON.parse(localStorage.getItem(LS_MANIFEST));
+    }
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const text = await res.text();
+    const manifest = JSON.parse(text);
+    const newEtag = res.headers.get('ETag') || '';
+    localStorage.setItem(LS_MANIFEST, JSON.stringify(manifest));
+    if (newEtag) localStorage.setItem(LS_ETAG, newEtag);
+    statusDot.className = 'status ok';
+    return manifest;
+  }catch(e){
+    console.warn('Manifest fetch failed:', e);
+    statusDot.className = 'status err';
+    const cached = localStorage.getItem(LS_MANIFEST);
+    return cached ? JSON.parse(cached) : null;
+  }
+}
+let CFG = null;
+function applyMirror(){
+  if (!CFG) return;
+  $('salonName').textContent = CFG.salonName || "Mon Salon";
+  $('logo').src = CFG.logoSrc || "";
+  $('cw').style.display = (CFG.modules?.clock || CFG.modules?.weather) ? 'flex':'none';
+  $('wWrap').style.display = CFG.modules?.weather ? 'flex':'none';
+  $('productCard').style.display = CFG.modules?.product ? 'block':'none';
+  $('adCard').style.display = CFG.modules?.ad ? 'block':'none';
+  $('slides').style.display = CFG.modules?.slides ? 'flex':'none';
+  if (CFG.modules?.product){
+    $('pName').textContent = CFG.product?.name || "";
+    $('pDesc').textContent = CFG.product?.desc || "";
+    $('pPrice').textContent = CFG.product?.price || "";
+    $('pImg').src = CFG.product?.img || "";
+  }
+  if (CFG.modules?.ad){
+    $('adTitle').textContent = CFG.ad?.title || "";
+    $('adText').textContent = CFG.ad?.text || "";
+    const wrap = $('adMediaWrap'); wrap.innerHTML = "";
+    if ((CFG.ad?.mediaType || 'image') === 'video'){
+      const v = document.createElement('video');
+      v.src = CFG.ad?.src || "";
+      v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+      wrap.appendChild(v);
+    } else {
+      const img = document.createElement('img');
+      img.src = CFG.ad?.src || "";
+      wrap.appendChild(img);
+    }
+  }
+  renderSlides();
+}
+function startClock(){
+  const tick=()=>{
+    if(!CFG?.modules?.clock) return;
+    const d=new Date(); const f=n=>n.toString().padStart(2,'0');
+    $('clock').textContent = f(d.getHours())+":"+f(d.getMinutes());
+  };
+  tick(); setInterval(tick, 15000);
+}
+async function fetchWeather(lat, lon){
+  try{
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const t = Math.round(data.current.temperature_2m);
+    $('wTemp').textContent = t + "°";
+    $('wDesc').textContent = "";
+    $('wIcon').src = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='48'>☁️</text></svg>`);
+  }catch(e){
+    $('wDesc').textContent = "—";
+  }
+}
+async function geocodeCity(city){
+  try{
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr&format=json`;
+    const res = await fetch(url); const data = await res.json();
+    if (data.results && data.results.length){ const r = data.results[0]; return {name:r.name, lat:r.latitude, lon:r.longitude}; }
+  }catch(e){}
+  return {name:"Paris", lat:48.8566, lon:2.3522};
+}
+async function startWeather(){
+  if(!CFG?.modules?.weather) return;
+  const setCity = (name)=> $('wCity').textContent = name;
+  try{
+    await new Promise((resolve,reject)=>{
+      if (!navigator.geolocation) return reject();
+      navigator.geolocation.getCurrentPosition(async (pos)=>{
+        setCity("Ici"); fetchWeather(pos.coords.latitude, pos.coords.longitude); resolve();
+      }, async ()=>{
+        const g = await geocodeCity(CFG.defaultCity || "Paris");
+        setCity(g.name); fetchWeather(g.lat, g.lon); resolve();
+      }, {timeout: 4000});
+    });
+  }catch(e){
+    const g = await geocodeCity(CFG?.defaultCity || "Paris");
+    setCity(g.name); fetchWeather(g.lat, g.lon);
+  }
+}
+let slideTimer=null, slideIdx=0;
+function renderSlides(){
+  if(!CFG?.modules?.slides || !CFG?.slides || CFG.slides.length===0){ $('slides').style.display='none'; return; }
+  $('slides').style.display='flex';
+  if(slideTimer){ clearInterval(slideTimer); slideTimer=null; }
+  const box=$('slideBox'); const sImg=$('sImg'), sTitle=$('sTitle'), sText=$('sText'), sFooter=$('sFooter'), sBadge=$('sBadge');
+  const show=()=>{
+    const s=CFG.slides[slideIdx];
+    sImg.src = s.img || "";
+    sTitle.textContent = s.title || "";
+    sText.textContent = s.text || "";
+    sFooter.textContent = s.footer || "";
+    sBadge.textContent = s.badge || "";
+    box.style.display='block'; box.style.animation='fadein 600ms ease forwards';
+    setTimeout(()=>{ box.style.animation='fadeout 500ms ease forwards'; setTimeout(()=>{ box.style.display='none'; },520); }, (s.durationSec || CFG.slideDisplaySeconds || 7)*1000);
+    slideIdx=(slideIdx+1)%CFG.slides.length;
+  };
+  setTimeout(()=>{
+    show();
+    slideTimer=setInterval(show, (CFG.slideIntervalSeconds||50)*1000);
+  }, (CFG.slideStartDelaySeconds||10)*1000);
+}
+async function boot(){
+  startClock();
+  const apply = async ()=>{
+    const mf = await fetchManifest();
+    if (mf){
+      CFG = mf;
+      applyMirror();
+      startWeather();
+    }
+  };
+  await apply();
+  setInterval(apply, 60000);
+}
+boot();
+window.addEventListener('keydown',(e)=>{ if(e.key==='Shift'){ document.body.style.cursor='default'; }});
+</script>
+</body>
+</html>

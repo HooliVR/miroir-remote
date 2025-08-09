@@ -43,16 +43,16 @@
       "img": "/salons/demo/produit.png"
     },
     {
-      "name": "Shampoing solide",
+      "name": "Shampoing Barbe",
       "desc": "Zéro plastique, nourrissant et écologique.",
       "price": "12,00 €",
-      "img": "/salons/demo/shampoing.jpg"
+      "img": "/salons/demo/shampoing.png"
     },
     {
       "name": "Cire coiffante",
       "desc": "Tenue forte pour toute la journée.",
       "price": "14,50 €",
-      "img": "/salons/demo/cire.jpg"
+      "img": "/salons/demo/cire.png"
     }
   ]
 }
